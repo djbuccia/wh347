@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WH-347 Certified Payroll</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent:   #4F6BF4;
+      --accent2:  #3B54D4;
+      --bg:       #F7F8FC;
+      --surface:  #FFFFFF;
+      --surface2: #F2F3F8;
+      --border:   #E4E6EF;
+      --border2:  #C9CCE0;
+      --text:     #111827;
+      --text2:    #4B5563;
+      --text3:    #9CA3AF;
+      --green:    #059669;
+      --green-bg: #ECFDF5;
+      --red:      #DC2626;
+      --red-bg:   #FEF2F2;
+      --amber-bg: #FFFBEB;
+      --amber-bd: #FCD34D;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+    .nav-icon {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    /* ── LAYOUT ── */
+    .page { max-width: 820px; margin: 0 auto; padding: 40px 20px 60px; }
+
+    /* ── HERO ── */
+    .hero { text-align: center; margin-bottom: 40px; }
+    .hero h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); margin-bottom: 10px; }
+    .hero p  { font-size: 15px; color: var(--text2); }
+
+    /* ── STEPS ── */
+    .steps { display: flex; justify-content: center; align-items: center; margin-bottom: 36px; gap: 0; }
+    .step-wrap { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+    .step-dot {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; margin-bottom: 5px;
+      transition: all 0.25s;
+    }
+    .step-dot.active { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px rgba(79,107,244,0.18); }
+    .step-dot.done   { background: var(--green); color: #fff; }
+    .step-dot.idle   { background: var(--surface); color: var(--text3); border: 2px solid var(--border); }
+    .step-label { font-size: 11px; font-weight: 600; }
+    .step-label.active { color: var(--accent); }
+    .step-label.done   { color: var(--green); }
+    .step-label.idle   { color: var(--text3); }
+    .step-line { width: 48px; height: 2px; margin-bottom: 24px; border-radius: 2px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 26px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--text3);
+      margin-bottom: 18px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── BUTTONS ── */
+    button { font-family: inherit; cursor: pointer; transition: all 0.15s; border: none; }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      border-radius: 9px; padding: 11px 24px;
+      font-size: 13px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 7px;
+      box-shadow: 0 1px 3px rgba(79,107,244,0.3);
+    }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface); color: var(--text);
+      border: 1.5px solid var(--border2);
+      border-radius: 9px; padding: 10px 20px;
+      font-size: 13px; font-weight: 500;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-amber {
+      background: #F59E0B; color: #fff;
+      border-radius: 9px; padding: 10px 18px;
+      font-size: 13px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-amber:hover { background: #D97706; }
+
+    /* ── DROPZONE ── */
+    .dropzone {
+      border: 2px dashed var(--border2);
+      border-radius: 12px; padding: 48px 24px;
+      text-align: center; cursor: pointer;
+      transition: all 0.2s; background: var(--bg);
+    }
+    .dropzone:hover, .dropzone.over {
+      border-color: var(--accent);
+      background: rgba(79,107,244,0.04);
+    }
+    .drop-icon {
+      width: 52px; height: 52px;
+      background: rgba(79,107,244,0.1);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+
+    /* ── FORM FIELDS ── */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label {
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .field input {
+      border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 9px 11px;
+      font-size: 13px; color: var(--text);
+      background: var(--surface); width: 100%;
+      transition: border-color 0.15s;
+    }
+    .field input:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,107,244,0.12);
+    }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    /* ── GRIDS ── */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .g6 { display: grid; grid-template-columns: repeat(6,1fr); gap: 8px; margin-bottom: 10px; }
+    .g7 { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 12px; }
+
+    /* ── EMPLOYEE CARD ── */
+    .emp-card {
+      border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+      margin-bottom: 14px; background: var(--surface2);
+    }
+    .emp-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+    .emp-badge {
+      font-size: 10px; padding: 3px 10px; border-radius: 20px;
+      background: rgba(79,107,244,0.1); color: var(--accent);
+      font-weight: 600; margin-left: 8px; vertical-align: middle;
+    }
+
+    /* ── ALERTS ── */
+    .alert-err {
+      background: var(--red-bg); color: var(--red);
+      border: 1px solid #FECACA; border-radius: 10px;
+      padding: 12px 16px; font-size: 13px; margin-bottom: 16px;
+    }
+
+    /* ── TEMPLATE BANNER ── */
+    .tmpl-banner {
+      margin-top: 20px; padding: 16px 18px;
+      background: var(--amber-bg); border: 1px solid var(--amber-bd);
+      border-radius: 10px; display: flex;
+      align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+
+    /* ── CHECKLIST ── */
+    .checklist {
+      margin-top: 16px; padding: 14px 16px;
+      background: var(--surface2); border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .checklist-title {
+      font-size: 11px; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+    }
+    .checklist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .checklist-item { font-size: 12px; color: var(--text2); display: flex; gap: 7px; align-items: flex-start; }
+    .check-dot { color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+    /* ── SPINNER ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    /* ── SUCCESS ── */
+    .success-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: var(--green-bg);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+    }
+    .next-steps {
+      margin-top: 24px; padding: 16px 18px;
+      background: var(--surface2); border-radius: 10px;
+      border: 1px solid var(--border); text-align: left;
+    }
+
+    /* ── UTILS ── */
+    .hidden { display: none !important; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    .fade { animation: fadeUp 0.22s ease; }
+
+    @media (max-width: 600px) {
+      .g2, .g3 { grid-template-columns: 1fr; }
+      .g6 { grid-template-columns: repeat(3,1fr); }
+      nav { padding: 0 16px; }
+      .page { padding: 24px 14px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </div>
+    WH-347 Payroll
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>WH-347 Generator</h1>
+    <p>Download our payroll template, fill it in, and upload it here — we'll generate your WH-347 form instantly.</p>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps" id="steps"></div>
+
+  <!-- ERROR -->
+  <div id="error-box" class="alert-err hidden"></div>
+
+  <!-- ── STEP 1: UPLOAD ── -->
+  <div id="step-upload" class="fade">
+    <div class="card">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+        <div class="drop-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4F6BF4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px;">Upload your completed template</div>
+        <div style="font-size:13px; color:var(--text2); margin-bottom:4px;">Only our Excel template is accepted — download it below if you don't have it yet</div>
+        <div style="font-size:12px; color:var(--text3);">CSV or .xlsx · Do not rename or reorder any columns</div>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none">
+
+      <div style="text-align:center; margin-top:18px;">
+        <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Choose File
+        </button>
+      </div>
+
+      <div class="tmpl-banner">
+        <div>
+          <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:3px;">Step 1 — Download the template</div>
+          <div style="font-size:12px; color:var(--text2);">Fill in your payroll data using our required format, then upload it above. Do not add, remove, or rename any columns.</div>
+        </div>
+        <button class="btn-amber" onclick="downloadTemplate()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Template
+        </button>
+      </div>
+
+      <div class="checklist">
+        <div class="checklist-title">Step 2 — Fill in these columns in the template</div>
+        <div class="checklist-grid">
+          <div class="checklist-item"><span class="check-dot">✓</span>Contractor Name &amp; Address</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Project Name &amp; Location</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Contract &amp; Project Number</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Payroll Number &amp; Week Ending</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Employee Name &amp; SS Last 4</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Work Classification</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Daily Hours (Sun – Sat)</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>ST/OT Hours &amp; Rates</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Gross Wages</div>
+          <div class="checklist-item"><span class="check-dot">✓</span>Deductions &amp; Net Wages</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: REVIEW ── -->
+  <div id="step-review" class="hidden fade">
+    <div class="card">
+      <div class="card-title">Project &amp; Contractor</div>
+      <div class="g2">
+        <div class="field"><label>Contractor Name</label><input id="f-contractor_name"></div>
+        <div class="field"><label>Contractor Address</label><input id="f-contractor_address"></div>
+        <div class="field"><label>Project Name</label><input id="f-project_name"></div>
+        <div class="field"><label>Project Location</label><input id="f-project_location"></div>
+        <div class="field"><label>Contract Number</label><input id="f-contract_number"></div>
+        <div class="field"><label>Project Number</label><input id="f-project_number"></div>
+      </div>
+      <div class="g3">
+        <div class="field"><label>Payroll Number</label><input id="f-payroll_number"></div>
+        <div class="field"><label>Week Ending (MM/DD/YYYY)</label><input id="f-week_ending" placeholder="MM/DD/YYYY"></div>
+        <div class="field"><label>Period Start (MM/DD/YYYY)</label><input id="f-period_start" placeholder="MM/DD/YYYY"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Signatory</div>
+      <div class="g3">
+        <div class="field"><label>Signatory Name</label><input id="f-signatory_name"></div>
+        <div class="field"><label>Title</label><input id="f-signatory_title"></div>
+        <div class="field"><label>Signature Date (MM/DD/YYYY)</label><input id="f-signature_date" placeholder="MM/DD/YYYY"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Employees &mdash; <span id="emp-count">0</span> found</div>
+      <div id="employees-container"></div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:4px;">
+      <button class="btn-secondary" onclick="goToStep('upload')">← Start Over</button>
+      <button class="btn-primary" onclick="generateAndDownload()">
+        Generate WH-347 PDF
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: DONE ── -->
+  <div id="step-done" class="hidden fade">
+    <div class="card" style="text-align:center; padding:52px 28px;">
+      <div class="success-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="font-size:22px; font-weight:800; margin-bottom:8px;">WH-347 Ready</h2>
+      <p style="font-size:14px; color:var(--text2); margin-bottom:28px;">
+        Form generated for week ending <strong id="done-week"></strong>.<br>
+        Review it, get it signed, and submit to the contracting officer.
+      </p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:8px;">
+        <button class="btn-primary" id="btn-download-pdf">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF
+        </button>
+        <button class="btn-secondary" onclick="goToStep('review')">Edit Data</button>
+        <button class="btn-secondary" onclick="goToStep('upload')">New Payroll</button>
+      </div>
+      <div class="next-steps">
+        <div style="font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Next Steps</div>
+        <div style="font-size:12px; color:var(--text2); display:flex; flex-direction:column; gap:6px;">
+          <div>1 &nbsp; Print and verify all figures for accuracy</div>
+          <div>2 &nbsp; Have the authorized signatory sign the form</div>
+          <div>3 &nbsp; Submit to the contracting officer weekly</div>
+          <div>4 &nbsp; Retain a copy for at least 3 years (29 CFR Part 5)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:32px; font-size:11px; color:var(--text3);">
+    Always verify generated forms before submission &mdash; compliance responsibility rests with the contractor.
+  </div>
+</div>
+
+<script>
+const TEMPLATE_B64 = "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";
+
+const COL_MAP = {
+  "contractor name":"contractor_name","contractor address":"contractor_address",
+  "project name":"project_name","project location":"project_location",
+  "contract number":"contract_number","project number":"project_number",
+  "wage determination no":"wage_det_no",
+  "payroll number":"payroll_number","week ending date":"week_ending",
+  "period start date":"period_start","signatory name":"signatory_name",
+  "signatory title":"signatory_title","signature date":"signature_date",
+  "employee name":"name","ss last 4 digits":"ss_last4",
+  "worker entry number":"worker_entry_no",
+  "worker type":"worker_type",
+  "work classification":"classification",
+  "hours sunday":"hours_sun","hours monday":"hours_mon","hours tuesday":"hours_tue",
+  "hours wednesday":"hours_wed","hours thursday":"hours_thu","hours friday":"hours_fri",
+  "hours saturday":"hours_sat","st hours":"st_hours","ot hours":"ot_hours",
+  "st rate":"rate_of_pay","ot rate":"ot_rate",
+  "fringe credit":"fringe_credit",
+  "gross wages":"gross_wages",
+  "fica":"fica","federal tax":"fed_tax","state tax":"state_tax",
+  "other deduction 1":"other_ded1","other deduction 2":"other_ded2",
+  "other deduction 3":"other_ded3","total deductions":"total_deductions","net wages":"net_wages",
+};
+const PROJECT_FIELDS = ["contractor_name","contractor_address","project_name","project_location",
+  "contract_number","project_number","payroll_number","week_ending","period_start",
+  "signatory_name","signatory_title","signature_date"];
+
+let parsedData = null, pdfBlob = null;
+
+function goToStep(name) {
+  ["upload","review","done"].forEach(s => document.getElementById("step-"+s).classList.add("hidden"));
+  document.getElementById("step-"+name).classList.remove("hidden");
+  document.getElementById("error-box").classList.add("hidden");
+  renderSteps(name);
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderSteps(current) {
+  const labels = ["Upload","Review","Download"];
+  const ids    = ["upload","review","done"];
+  const idx    = ids.indexOf(current);
+  document.getElementById("steps").innerHTML = labels.map((label,i) => {
+    const done   = i < idx, active = i === idx;
+    const dotCls = done ? "done" : active ? "active" : "idle";
+    const lblCls = done ? "done" : active ? "active" : "idle";
+    const lineBg = i < idx ? "var(--green)" : i === idx ? "var(--accent)" : "var(--border)";
+    const line   = i < 2 ? `<div class="step-line" style="background:${lineBg}"></div>` : "";
+    return `<div style="display:flex;align-items:center;">
+      <div class="step-wrap">
+        <div class="step-dot ${dotCls}">${done ? "✓" : i+1}</div>
+        <span class="step-label ${lblCls}">${label}</span>
+      </div>${line}</div>`;
+  }).join("");
+}
+
+function showError(msg) {
+  const el = document.getElementById("error-box");
+  el.textContent = "⚠ " + msg; el.classList.remove("hidden");
+}
+
+document.getElementById("file-input").addEventListener("change", function(e) {
+  const f = e.target.files[0]; if(f) handleFile(f); e.target.value="";
+});
+const dz = document.getElementById("dropzone");
+dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+
+function handleFile(file) {
+  if(!/\.(csv|xlsx|xls)$/i.test(file.name)) { showError("Please upload a CSV or Excel (.xlsx) file."); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array"});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:""});
+      parseRows(rows);
+    } catch(err) { showError("Could not read file: " + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function norm(s) { return String(s).trim().toLowerCase().replace(/\s+/g," "); }
+
+function parseRows(rows) {
+  if(rows.length < 2) { showError("File appears empty."); return; }
+  let hi = -1, headers = [];
+  for(let i=0;i<Math.min(10,rows.length);i++) {
+    if(rows[i].filter(c=>COL_MAP[norm(c)]).length >= 3) { hi=i; headers=rows[i]; break; }
+  }
+  if(hi===-1) { showError("Could not find required columns. Please use the provided template — make sure columns like \'Employee Name\', \'Work Classification\', and \'Gross Wages\' are present."); return; }
+  const colIdx = {};
+  headers.forEach((h,i) => { const k=COL_MAP[norm(h)]; if(k) colIdx[k]=i; });
+  const dataRows = rows.slice(hi+1).filter(r=>r.some(c=>String(c).trim()));
+  if(!dataRows.length) { showError("No data rows found after the header."); return; }
+  const project = {};
+  PROJECT_FIELDS.forEach(f => { if(colIdx[f]!==undefined) project[f]=String(dataRows[0][colIdx[f]]||"").trim(); });
+  const employees = dataRows.map(row => {
+    const emp = {};
+    ["name","ss_last4","classification","st_hours","ot_hours","rate_of_pay","ot_rate",
+     "gross_wages","fica","fed_tax","state_tax","other_ded1","other_ded2","other_ded3","total_deductions","net_wages"]
+      .forEach(f => { emp[f] = colIdx[f]!==undefined ? String(row[colIdx[f]]||"").trim() : ""; });
+    emp.daily_hours = ["hours_sun","hours_mon","hours_tue","hours_wed","hours_thu","hours_fri","hours_sat"]
+      .map(k => colIdx[k]!==undefined ? Number(row[colIdx[k]])||0 : 0);
+    return emp;
+  }).filter(e=>e.name);
+  if(!employees.length) { showError("No employees found. Check the \'Employee Name\' column has data."); return; }
+  parsedData = {...project, employees};
+  populateReview();
+  goToStep("review");
+}
+
+function populateReview() {
+  const d = parsedData;
+  PROJECT_FIELDS.forEach(f => { const el=document.getElementById("f-"+f); if(el) el.value=d[f]||""; });
+  document.getElementById("emp-count").textContent = d.employees.length;
+  const c = document.getElementById("employees-container");
+  c.innerHTML = "";
+  d.employees.forEach((emp, idx) => {
+    const div = document.createElement("div");
+    div.className = "emp-card";
+    div.innerHTML = `
+      <div class="emp-name">${emp.name||"Employee "+(idx+1)}<span class="emp-badge">${emp.classification||"—"}</span></div>
+      <div class="g3">
+        ${fld("Name (Last, First)",`emp-${idx}-name`,emp.name)}
+        ${fld("SS Last 4",`emp-${idx}-ss_last4`,emp.ss_last4)}
+        ${fld("Work Classification",`emp-${idx}-classification`,emp.classification)}
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:7px;">Daily Hours (Sun – Sat)</label>
+        <div class="g7">${["Su","Mo","Tu","We","Th","Fr","Sa"].map((d,di)=>`
+          <div style="text-align:center;">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px;">${d}</div>
+            <input type="number" min="0" max="24" id="emp-${idx}-hours-${di}" value="${emp.daily_hours[di]||0}" style="border:1.5px solid var(--border);border-radius:7px;padding:7px 2px;font-size:13px;text-align:center;width:100%;background:var(--surface);">
+          </div>`).join("")}</div>
+      </div>
+      <div class="g3">
+        ${fld("ST Hours",`emp-${idx}-st_hours`,emp.st_hours)}
+        ${fld("OT Hours",`emp-${idx}-ot_hours`,emp.ot_hours)}
+        ${fld("ST Rate ($/hr)",`emp-${idx}-rate_of_pay`,emp.rate_of_pay)}
+        ${fld("OT Rate ($/hr)",`emp-${idx}-ot_rate`,emp.ot_rate)}
+        ${fld("Gross Wages ($)",`emp-${idx}-gross_wages`,emp.gross_wages)}
+        ${fld("Net Wages ($)",`emp-${idx}-net_wages`,emp.net_wages)}
+      </div>
+      <div class="g6">
+        ${fld("FICA",`emp-${idx}-fica`,emp.fica)}
+        ${fld("Fed Tax",`emp-${idx}-fed_tax`,emp.fed_tax)}
+        ${fld("State Tax",`emp-${idx}-state_tax`,emp.state_tax)}
+        ${fld("Other Ded 1",`emp-${idx}-other_ded1`,emp.other_ded1)}
+        ${fld("Other Ded 2",`emp-${idx}-other_ded2`,emp.other_ded2)}
+        ${fld("Total Deductions",`emp-${idx}-total_deductions`,emp.total_deductions)}
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+function fld(label,id,val) {
+  return `<div class="field"><label>${label}</label><input id="${id}" value="${String(val||"").replace(/"/g,"&quot;")}"></div>`;
+}
+
+function collectData() {
+  const d = {};
+  PROJECT_FIELDS.forEach(f => { d[f]=document.getElementById("f-"+f)?.value||""; });
+  d.employees = parsedData.employees.map((_,idx) => {
+    const emp = {};
+    ["name","ss_last4","classification","st_hours","ot_hours","rate_of_pay","ot_rate",
+     "gross_wages","fica","fed_tax","state_tax","other_ded1","other_ded2","other_ded3","total_deductions","net_wages"]
+      .forEach(f => { emp[f]=document.getElementById(`emp-${idx}-${f}`)?.value||""; });
+    emp.daily_hours=[0,1,2,3,4,5,6].map(di=>Number(document.getElementById(`emp-${idx}-hours-${di}`)?.value)||0);
+    return emp;
+  });
+  return d;
+}
+
+async function generateAndDownload() {
+  const data = collectData();
+  try {
+    const blob = await generatePDF(data);
+    pdfBlob = blob;
+    document.getElementById("done-week").textContent = data.week_ending||"—";
+    document.getElementById("btn-download-pdf").onclick = () => {
+      const url=URL.createObjectURL(pdfBlob);
+      const a=Object.assign(document.createElement("a"),{href:url,download:`WH347_${(data.week_ending||"form").replace(/\//g,"-")}.pdf`});
+      a.click(); URL.revokeObjectURL(url);
+    };
+    goToStep("done");
+  } catch(e) { showError("PDF generation failed: "+e.message); }
+}
+
+async function generatePDF(data) {
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"letter"});
+  const W=612,H=792,m=26;
+  const sf=(sz,b=false)=>{doc.setFont("helvetica",b?"bold":"normal");doc.setFontSize(sz);};
+  const tc=(r,g,b)=>doc.setTextColor(r,g,b);
+  const tx=(s,x,y,o={})=>{if(s==null||s==="")return;doc.text(String(s),x,y,o);};
+  const rect=(x,y,w,h)=>doc.rect(x,y,w,h);
+
+  // ══════════════════════════════════════════════════
+  // PAGE 1 — PAYROLL DATA
+  // ══════════════════════════════════════════════════
+
+  // ── HEADER ──
+  tc(0,0,0); sf(8,true);
+  tx("U.S. DEPARTMENT OF LABOR — WAGE AND HOUR DIVISION",W/2,H-20,{align:"center"});
+  sf(11,true); tx("PAYROLL",W/2,H-32,{align:"center"});
+  sf(5.5); tc(80,80,80);
+  tx("(For Contractor's Optional Use; See Instructions at www.dol.gov/agencies/whd/forms/wh347)",W/2,H-42,{align:"center"});
+  sf(6); doc.text("Form WH-347  Rev. January 2025",W-m,H-20,{align:"right"});
+  doc.text("OMB No. 1235-0008  Expires: 01/31/2028",W-m,H-30,{align:"right"});
+
+  // ── ROWS 1–2: Project header (table style) ──
+  const hTop = H-100;
+  const hH = 22;
+  // Row 1 cells: Prime name/addr | Project name/loc | Wage Det No | Certified Payroll No | Week Ending
+  const r1=[
+    {label:"PRIME/SUB CONTRACTOR NAME & ADDRESS", w:200},
+    {label:"PROJECT NAME & LOCATION",             w:160},
+    {label:"WAGE DETERMINATION NO.",              w:80},
+    {label:"CERTIFIED PAYROLL NO.",               w:72},
+    {label:"WEEK ENDING",                         w:60},
+  ];
+  let rx=m;
+  r1.forEach(col=>{
+    rect(rx,hTop,col.w,hH*2);
+    sf(5); tc(80,80,80); tx(col.label,rx+2,hTop+hH*2-5);
+    rx+=col.w;
+  });
+  // Fill values
+  sf(7,true); tc(0,0,0);
+  tx((data.contractor_name||"").substring(0,30), m+2, hTop+hH*2-16);
+  sf(6); tx((data.contractor_address||"").substring(0,30), m+2, hTop+hH*2-8);
+  sf(7,true);
+  tx((data.project_name||"").substring(0,26), m+202, hTop+hH*2-16);
+  sf(6); tx((data.project_location||"").substring(0,26), m+202, hTop+hH*2-8);
+  tx(data.contract_number||"", m+362, hTop+hH*2-12);
+  tx(data.payroll_number||"", m+444, hTop+hH*2-12);
+  tx(data.week_ending||"", m+518, hTop+hH*2-12);
+
+  // Project No row below
+  const pRow = hTop - 18;
+  rect(m,pRow,200,18); rect(m+200,pRow,160,18); rect(m+360,pRow,212,18);
+  sf(5); tc(80,80,80);
+  tx("PROJECT OR CONTRACT NO.",m+2,pRow+13);
+  tx("PRIME CONTRACTOR'S PROJECT NO. (if any)",m+202,pRow+13);
+  tx("Is this the Final Payroll for this Project?   □ YES   □ NO",m+362,pRow+13);
+  sf(6,true); tc(0,0,0);
+  tx(data.project_number||"",m+2,pRow+6);
+
+  // ── COLUMN HEADERS ──
+  // New 2025 layout columns
+  const colTop = pRow - 2;
+  // Col widths must sum to W - 2*m = 560
+  // 1A:no | 1B:name+id | 1C:JW/RA | 2:class | 3:Wage Det | 4:daily hours | 5:total | 6A:rate | 6B:fringe | 7:gross | 8:deductions | 9:net
+  const cols = [
+    {h:"(1A)\nENTRY\nNO.",    w:20},
+    {h:"(1B)\nNAME &\nID NO.", w:88},
+    {h:"(1C)\nJW\nRA",        w:22},
+    {h:"(2)\nWORK\nCLASS.",   w:52},
+    {h:"(3)\nWAGE\nDET.",     w:34},
+    {h:"(4) DAY/DATE & HOURS",w:130, sub:["S","M","T","W","T","F","S","TOT"]},
+    {h:"(5)\nTOTAL\nHRS",     w:30},
+    {h:"(6A)\nRATE\n$/HR",    w:36},
+    {h:"(6B)\nFRINGE\nCREDIT",w:36},
+    {h:"(7)\nGROSS\nWAGES",  w:42},
+    {h:"(8)\nTOTAL\nDED.",    w:36},
+    {h:"(9)\nNET\nWAGES",    w:34},
+  ];
+  const hdrH = 28;
+  let cx = m;
+  cols.forEach(col=>{
+    rect(cx,colTop-hdrH,col.w,hdrH);
+    sf(4.5); tc(0,0,0);
+    const lines=col.h.split("\n");
+    lines.forEach((l,li)=>tx(l,cx+col.w/2,colTop-hdrH+8+li*7,{align:"center"}));
+    cx+=col.w;
+  });
+  // Day sub-headers inside col 4
+  const dayW=130/8, dayX=m+20+88+22+52+34;
+  ["S","M","T","W","T","F","S","TOT"].forEach((d,i)=>{
+    sf(4); tx(d,dayX+i*dayW+dayW/2,colTop-3,{align:"center"});
+  });
+
+  // ── EMPLOYEE ROWS ──
+  const emps=data.employees||[];
+  const rowH=26;
+  let yE=colTop-hdrH;
+
+  emps.slice(0,7).forEach((emp,idx)=>{
+    const hrs=emp.daily_hours||[0,0,0,0,0,0,0];
+    const tot=hrs.reduce((a,b)=>a+(+b||0),0);
+    // Draw all cells
+    let xr=m;
+    cols.forEach(col=>{rect(xr,yE-rowH,col.w,rowH);xr+=col.w;});
+    // Fill
+    xr=m;
+    sf(6,true); tc(0,0,0);
+    // 1A entry no
+    tx(String(idx+1),xr+col.w/2,yE-rowH/2+2,{align:"center"}); xr+=cols[0].w;
+    // 1B name + SS
+    sf(6,true); tx((emp.name||"").substring(0,16),xr+2,yE-14);
+    sf(5); tx("***-**-"+(emp.ss_last4||"****"),xr+2,yE-5); xr+=cols[1].w;
+    // 1C JW/RA checkboxes
+    sf(5); tx(emp.worker_type==="RA"?"□JW ☑RA":"☑JW □RA",xr+1,yE-10); xr+=cols[2].w;
+    // 2 classification
+    sf(5);
+    doc.splitTextToSize(emp.classification||"",cols[3].w-3).slice(0,3).forEach((l,li)=>tx(l,xr+2,yE-18+li*6));
+    xr+=cols[3].w;
+    // 3 wage det no (blank — not in template yet)
+    xr+=cols[4].w;
+    // 4 daily hours
+    const dxStart=xr;
+    hrs.forEach((h,i)=>{if(h){sf(6,true);tx(String(h),dxStart+i*dayW+dayW/2,yE-rowH/2+2,{align:"center"});}});
+    xr+=cols[5].w;
+    // 5 total
+    sf(6,true); tx(String(tot),xr+cols[6].w/2,yE-rowH/2+2,{align:"center"}); xr+=cols[6].w;
+    // 6A rate
+    sf(5.5); tx("$"+(emp.rate_of_pay||""),xr+2,yE-14);
+    if(emp.ot_rate) tx("$"+emp.ot_rate+" OT",xr+2,yE-6); xr+=cols[7].w;
+    // 6B fringe credit
+    tx(emp.fringe_credit?"$"+emp.fringe_credit:"",xr+2,yE-10); xr+=cols[8].w;
+    // 7 gross
+    sf(6,true); tx("$"+(emp.gross_wages||""),xr+2,yE-10); xr+=cols[9].w;
+    // 8 total ded
+    sf(5.5); tx("$"+(emp.total_deductions||""),xr+2,yE-10); xr+=cols[10].w;
+    // 9 net wages
+    sf(6,true); tx("$"+(emp.net_wages||""),xr+2,yE-10);
+    yE-=rowH;
+  });
+
+  // ══════════════════════════════════════════════════
+  // PAGE 2 — COMPLIANCE & FRINGES
+  // ══════════════════════════════════════════════════
+  doc.addPage();
+
+  // Page 2 header
+  sf(8,true); tc(0,0,0);
+  tx("U.S. DEPARTMENT OF LABOR — WAGE AND HOUR DIVISION",W/2,H-20,{align:"center"});
+  sf(6); doc.text("Form WH-347  Rev. January 2025  |  OMB No. 1235-0008  Expires: 01/31/2028",W/2,H-30,{align:"center"});
+
+  // Contractor/project repeat (rows 1-2 on page 2)
+  const p2top=H-70;
+  rect(m,p2top,280,20); rect(m+280,p2top,130,20); rect(m+410,p2top,82,20); rect(m+492,p2top,68,20);
+  sf(5); tc(80,80,80);
+  tx("PRIME/SUB CONTRACTOR NAME & ADDRESS",m+2,p2top+14);
+  tx("PROJECT NAME & LOCATION",m+282,p2top+14);
+  tx("CERTIFIED PAYROLL NO.",m+412,p2top+14);
+  tx("WEEK ENDING",m+494,p2top+14);
+  sf(6,true); tc(0,0,0);
+  tx((data.contractor_name||"").substring(0,40),m+2,p2top+7);
+  tx((data.project_name||"").substring(0,22),m+282,p2top+7);
+  tx(data.payroll_number||"",m+412,p2top+7);
+  tx(data.week_ending||"",m+494,p2top+7);
+
+  // Certifying official row
+  const coRow=p2top-18;
+  rect(m,coRow,360,18); rect(m+360,coRow,200,18);
+  sf(5); tc(80,80,80); tx("CERTIFYING OFFICIAL'S NAME & TITLE",m+2,coRow+13);
+  tx("CERTIFYING OFFICIAL'S CONTACT INFO (Phone/Email)",m+362,coRow+13);
+  sf(6,true); tc(0,0,0);
+  tx((data.signatory_name||"")+" — "+(data.signatory_title||""),m+2,coRow+6);
+
+  // ── FRINGE BENEFIT TABLE ──
+  const fbTop=coRow-28;
+  sf(6,true); tc(0,0,0);
+  tx("FRINGE BENEFIT PAYMENTS (Complete if hourly fringe credit shown in Column 6B above)",m,fbTop);
+  const fbHdr=fbTop-18;
+  const fbCols=[
+    {l:"ENTRY NO.",w:36},{l:"PLAN NAME",w:120},{l:"TYPE",w:60},
+    {l:"PLAN NO.",w:60},{l:"FUNDED?",w:50},{l:"HOURLY CREDIT PER WORKER",w:234}
+  ];
+  let fxr=m;
+  fbCols.forEach(c=>{rect(fxr,fbHdr,c.w,18);sf(5);tc(80,80,80);tx(c.l,fxr+c.w/2,fbHdr+12,{align:"center"});fxr+=c.w;});
+  // 3 blank fringe rows
+  for(let i=0;i<3;i++){
+    let fxr2=m;
+    fbCols.forEach(c=>{rect(fxr2,fbHdr-18*(i+1),c.w,18);fxr2+=c.w;});
+  }
+
+  // ── STATEMENT OF COMPLIANCE ──
+  const scTop=fbHdr-18*3-22;
+  sf(7,true); tc(0,0,0); tx("STATEMENT OF COMPLIANCE",m,scTop);
+  sf(5.5);
+  const stmt=[
+    `I, ${data.signatory_name||"___________________"}, ${data.signatory_title||"___________________"}, do hereby state:`,
+    `(1) That I pay or supervise the payment of the persons employed by ${data.contractor_name||"___________________"} on the`,
+    `    ${data.project_name||"___________________"}, ${data.project_location||""}; that during the payroll period`,
+    `    commencing ${data.period_start||"______"} and ending ${data.week_ending||"______"}, all persons employed on said`,
+    `    project have been paid the full weekly wages earned; that no rebates have been or will be made directly or`,
+    `    indirectly to or on behalf of said contractor from full weekly wages earned by any person; and that no`,
+    `    deductions have been made either directly or indirectly from full wages earned, except such permissible`,
+    `    payroll deductions as are permitted by 29 CFR Part 3.`,
+    `(2) That fringe benefits have been or will be paid in cash and/or to bona fide fringe benefit plans, funds,`,
+    `    or programs for the benefit of such employees, except as noted in Section 4(c) below.`,
+    `(3) That any apprentices employed in the above period are duly registered in a bona fide apprenticeship`,
+    `    program registered with a State Apprenticeship Agency recognized by the U.S. DOL, or if no such`,
+    `    recognized agency exists in a State, are registered with the U.S. DOL Office of Apprenticeship.`,
+    `    □ Registered with U.S. DOL Office of Apprenticeship    □ Registered with a State Apprenticeship Agency`,
+  ];
+  let sy=scTop-8;
+  stmt.forEach(line=>{tx(line,m,sy);sy-=7.5;});
+
+  // Exceptions section
+  sy-=6;
+  sf(6,true); tx("(4) EXCEPTIONS (if any):",m,sy); sy-=8;
+  rect(m,sy-30,W-2*m,30); sf(5.5); tc(80,80,80);
+  tx("Describe any exceptions to the above statements. If none, write NONE.",m+3,sy-18);
+
+  // Signature block
+  sy-=48;
+  doc.line(m,sy,m+200,sy); doc.line(m+240,sy,m+440,sy); doc.line(m+460,sy,W-m,sy);
+  sf(5.5); tc(80,80,80);
+  tx("Signature of Authorized Representative",m,sy+7);
+  tx("Title",m+240,sy+7); tx("Date",m+460,sy+7);
+  sf(7,true); tc(0,0,0);
+  tx(data.signatory_name||"",m+2,sy-3);
+  tx(data.signatory_title||"",m+242,sy-3);
+  tx(data.signature_date||"",m+462,sy-3);
+
+  doc.line(m,sy-22,m+300,sy-22);
+  sf(5.5); tc(80,80,80); tx("Name (Please Print)",m,sy-14);
+  sf(7,true); tc(0,0,0); tx(data.signatory_name||"",m+2,sy-26);
+
+  // Footer
+  sf(4.5); tc(130,130,130);
+  tx("THE WILLFUL FALSIFICATION OF ANY OF THE ABOVE STATEMENTS MAY SUBJECT THE CONTRACTOR OR SUBCONTRACTOR TO CIVIL OR CRIMINAL PROSECUTION (SEE SECTION 1001 OF TITLE 18 AND SECTION 3729 OF TITLE 31 OF THE UNITED STATES CODE).",W/2,18,{align:"center",maxWidth:W-40});
+
+  return doc.output("blob");
+}
+
+
+function downloadTemplate() {
+  try {
+    const b=atob(TEMPLATE_B64);
+    const arr=new Uint8Array(b.length);
+    for(let i=0;i<b.length;i++) arr[i]=b.charCodeAt(i);
+    const blob=new Blob([arr],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:"WH347_Payroll_Template.xlsx"});
+    a.click();URL.revokeObjectURL(a.href);
+  } catch(e) { showError("Template download failed: "+e.message); }
+}
+
+goToStep("upload");
+</script>
+</body>
+</html>
