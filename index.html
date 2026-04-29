@@ -705,7 +705,7 @@ async function generatePDF(data) {
     xr=m;
     sf(6,true); tc(0,0,0);
     // 1A entry no
-    tx(String(idx+1),xr+col.w/2,yE-rowH/2+2,{align:"center"}); xr+=cols[0].w;
+    tx(String(idx+1),xr+cols[0].w/2,yE-rowH/2+2,{align:"center"}); xr+=cols[0].w;
     // 1B name + SS
     sf(6,true); tx((emp.name||"").substring(0,16),xr+2,yE-14);
     sf(5); tx("***-**-"+(emp.ss_last4||"****"),xr+2,yE-5); xr+=cols[1].w;
