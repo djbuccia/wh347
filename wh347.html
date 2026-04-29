@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WH-347 Certified Payroll Platform</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1B2A4A;
+      --gold: #C9A84C;
+      --bg: #f8f8f6;
+      --surface: #ffffff;
+      --surface2: #f4f4f2;
+      --border: rgba(0,0,0,0.12);
+      --border2: rgba(0,0,0,0.22);
+      --text: #1a1a1a;
+      --text2: #666;
+      --text3: #999;
+      --blue-bg: #e8f0fb;
+      --blue-text: #1a56b0;
+      --green-bg: #e8f5e9;
+      --green-text: #2e7d32;
+      --red-bg: #fdecea;
+      --red-text: #b71c1c;
+      --success-bg: #e8f5e9;
+      --success-text: #2e7d32;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    #root { min-height: 100vh; }
+    input, select, textarea {
+      font-family: inherit; font-size: 13px;
+      border: 1px solid var(--border2); border-radius: 6px;
+      padding: 7px 10px; background: var(--surface); color: var(--text);
+      width: 100%; transition: border-color 0.15s;
+    }
+    input:focus { outline: none; border-color: var(--blue-text); box-shadow: 0 0 0 3px rgba(26,86,176,0.12); }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    button { font-family: inherit; cursor: pointer; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .fade-in { animation: fadeIn 0.25s ease; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useCallback } = React;
+
+const TEMPLATE_B64 = "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";
+
+const PARSE_SYSTEM = `You are a certified payroll specialist. Extract payroll data from uploaded reports and return ONLY valid JSON with no markdown, no explanation. Return this exact structure:
+{"contractor_name":"","contractor_address":"","project_name":"","project_location":"","project_number":"","contract_number":"","payroll_number":"","week_ending":"MM/DD/YYYY","period_start":"MM/DD/YYYY","signatory_name":"","signatory_title":"","signature_date":"MM/DD/YYYY","employees":[{"name":"Last, First","ss_last4":"****","classification":"","daily_hours":[0,0,0,0,0,0,0],"st_hours":0,"ot_hours":0,"rate_of_pay":"","ot_rate":"","gross_wages":"","fica":"","fed_tax":"","state_tax":"","other_ded1":"","other_ded2":"","other_ded3":"","total_deductions":"","net_wages":""}]}
+Use "" for missing string fields, 0 for missing numbers. daily_hours is [Sun,Mon,Tue,Wed,Thu,Fri,Sat].`;
+
+function downloadTemplate() {
+  try {
+    const b = atob(TEMPLATE_B64);
+    const arr = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) arr[i] = b.charCodeAt(i);
+    const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "WH347_Payroll_Template.xlsx" });
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch(e) { alert("Download failed: " + e.message); }
+}
+
+async function generatePDF(data) {
+  if (!window.jspdf) {
+    await new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+  const W = 612, H = 792, m = 30;
+
+  const sf = (sz, bold=false) => { doc.setFont("helvetica", bold?"bold":"normal"); doc.setFontSize(sz); };
+  const tc = (r,g,b) => doc.setTextColor(r,g,b);
+  const tx = (str, x, y, opts={}) => { if(!str) return; doc.text(String(str), x, y, opts); };
+
+  tc(0,0,0);
+  sf(9,true); tx("U.S. DEPARTMENT OF LABOR", W/2, H-28, {align:"center"});
+  sf(7,true); tx("WAGE AND HOUR DIVISION", W/2, H-38, {align:"center"});
+  sf(12,true); tx("PAYROLL", W/2, H-50, {align:"center"});
+  sf(6); tx("(For Contractor's Optional Use — See Instructions at www.dol.gov/whd)", W/2, H-60, {align:"center"});
+  sf(6); doc.text("Form WH-347 (Rev. 08/2008)", W-m, H-28, {align:"right"});
+  doc.text("OMB No. 1235-0008", W-m, H-38, {align:"right"});
+
+  const y1 = H-112, rh = 48;
+  doc.rect(m, y1, 240, rh); doc.rect(m+240, y1, 200, rh);
+  doc.rect(m+440, y1, 80, rh/2); doc.rect(m+440, y1+rh/2, 80, rh/2);
+  sf(5.5); tc(80,80,80);
+  tx("NAME AND ADDRESS OF CONTRACTOR", m+2, y1+rh-6);
+  tx("PROJECT AND LOCATION", m+242, y1+rh-6);
+  tx("PAYROLL NO.", m+442, y1+rh/2-4);
+  tx("WEEK ENDING", m+442, y1+rh-4);
+  sf(8,true); tc(0,0,0);
+  tx((data.contractor_name||"").substring(0,42), m+4, y1+30);
+  sf(7); tx((data.contractor_address||"").substring(0,42), m+4, y1+18);
+  sf(8,true); tx((data.project_name||"").substring(0,36), m+244, y1+30);
+  sf(7); tx((data.project_location||"").substring(0,36), m+244, y1+18);
+  sf(8,true); tx(String(data.payroll_number||""), m+444, y1+rh/2-14);
+  tx(data.week_ending||"", m+444, y1+rh-14);
+
+  const y2 = y1-22;
+  doc.rect(m,y2,240,22); doc.rect(m+240,y2,200,22);
+  sf(5.5); tc(80,80,80);
+  tx("PROJECT OR CONTRACT NO.", m+2, y2+15); tx("PROJECT OR CONTRACT NO.", m+242, y2+15);
+  sf(7); tc(0,0,0);
+  tx(data.contract_number||"", m+4, y2+6); tx(data.project_number||"", m+244, y2+6);
+
+  const cw=[20,108,55,22,22,22,22,22,22,22,30,52,34,34];
+  const ch=["#","NAME / SS LAST 4","CLASSIFICATION","S","M","T","W","T","F","S","TOT","TOTAL HRS","RATE","GROSS"];
+  const y3=y2-34; let xp=m;
+  cw.forEach((w,i)=>{
+    doc.rect(xp,y3,w,34); sf(5); tc(0,0,0);
+    tx(ch[i], xp+w/2, y3+20, {align:"center"}); xp+=w;
+  });
+
+  const emps = data.employees||[]; let yE=y3-32;
+  emps.slice(0,7).forEach((emp,idx)=>{
+    let xr=m; const hrs=emp.daily_hours||[0,0,0,0,0,0,0];
+    const tot=hrs.reduce((a,b)=>a+(+b||0),0);
+    const rh2=32;
+    doc.rect(xr,yE,cw[0],rh2); sf(7,true); tc(0,0,0);
+    tx(String(idx+1),xr+cw[0]/2,yE+rh2/2+3,{align:"center"}); xr+=cw[0];
+    doc.rect(xr,yE,cw[1],rh2);
+    sf(7,true); tx((emp.name||"").substring(0,20),xr+2,yE+22);
+    sf(6); tx("***-**-"+(emp.ss_last4||"****"),xr+2,yE+12); xr+=cw[1];
+    doc.rect(xr,yE,cw[2],rh2); sf(6);
+    doc.splitTextToSize(emp.classification||"",cw[2]-4).slice(0,3).forEach((l,li)=>tx(l,xr+2,yE+22-li*7));
+    xr+=cw[2];
+    for(let d=0;d<7;d++){
+      doc.rect(xr,yE,cw[3+d],rh2);
+      if(hrs[d]){sf(7,true);tx(String(hrs[d]),xr+cw[3+d]/2,yE+rh2/2+3,{align:"center"});}
+      xr+=cw[3+d];
+    }
+    doc.rect(xr,yE,cw[10],rh2); sf(7,true); tx(String(tot),xr+cw[10]/2,yE+rh2/2+3,{align:"center"}); xr+=cw[10];
+    doc.rect(xr,yE,cw[11],rh2); sf(6);
+    tx("ST: "+(emp.st_hours||tot),xr+2,yE+22);
+    if(emp.ot_hours) tx("OT: "+emp.ot_hours,xr+2,yE+12); xr+=cw[11];
+    doc.rect(xr,yE,cw[12],rh2); sf(6);
+    tx("$"+(emp.rate_of_pay||""),xr+2,yE+22);
+    if(emp.ot_rate) tx("$"+emp.ot_rate+" OT",xr+2,yE+12); xr+=cw[12];
+    doc.rect(xr,yE,cw[13],rh2); sf(7,true);
+    tx("$"+(emp.gross_wages||""),xr+2,yE+rh2/2+3);
+    yE-=rh2;
+  });
+
+  // Deductions
+  const dc=[20,108,55,32,32,32,32,32,32,38,38];
+  const dl=["#","NAME","CLASS","FICA","FED TAX","STATE","OTHER1","OTHER2","OTHER3","TOTAL DED","NET WAGES"];
+  const yd=yE-6; let xd=m;
+  dc.forEach((w,i)=>{
+    doc.rect(xd,yd-18,w,18); sf(5); tc(0,0,0);
+    tx(dl[i],xd+w/2,yd-6,{align:"center"}); xd+=w;
+  });
+  let yd2=yd-18;
+  emps.slice(0,7).forEach((emp,idx)=>{
+    const rv=[String(idx+1),(emp.name||"").substring(0,18),(emp.classification||"").substring(0,10),
+      emp.fica,emp.fed_tax,emp.state_tax,emp.other_ded1,emp.other_ded2,emp.other_ded3,emp.total_deductions,emp.net_wages];
+    let xdr=m;
+    dc.forEach((w,i)=>{
+      doc.rect(xdr,yd2-14,w,14);
+      if(rv[i]){sf(5.5);const p=i>=3?"$":"";tx((p+rv[i]).substring(0,Math.floor(w/3.5)),xdr+w/2,yd2-4,{align:"center"});}
+      xdr+=w;
+    });
+    yd2-=14;
+  });
+
+  // Compliance
+  const yc=yd2-20; sf(7,true); tc(0,0,0); tx("STATEMENT OF COMPLIANCE",m,yc);
+  sf(6);
+  const ct=`I, the undersigned, do hereby state that I pay or supervise the payment of persons employed by ${data.contractor_name||"__________"} on the ${data.project_name||"__________"}; that during the payroll period commencing ${data.period_start||"______"} and ending ${data.week_ending||"______"} all persons employed have been paid the full weekly wages earned, that no rebates have been or will be made either directly or indirectly, and that no deductions have been made except as permitted by regulations issued under the Copeland Act (29 CFR Part 3).`;
+  let ycl=yc-10;
+  doc.splitTextToSize(ct,W-2*m).slice(0,5).forEach(l=>{tx(l,m,ycl);ycl-=8;});
+
+  const ys=ycl-22;
+  doc.line(m,ys,m+190,ys); doc.line(m+230,ys,m+430,ys);
+  sf(6); tx("Signature",m,ys+8); tx("Title",m+230,ys+8);
+  doc.line(m,ys-28,m+190,ys-28); doc.line(m+230,ys-28,m+330,ys-28);
+  tx("Name (Please Print)",m,ys-22); tx("Date",m+230,ys-22);
+  sf(8,true);
+  tx(data.signatory_name||"",m+2,ys-4);
+  tx(data.signatory_title||"",m+232,ys-4);
+  tx(data.signature_date||"",m+232,ys-32);
+
+  sf(5); tc(120,120,120);
+  tx("THE WILLFUL FALSIFICATION OF ANY OF THE ABOVE STATEMENTS MAY SUBJECT THE CONTRACTOR OR SUBCONTRACTOR TO CIVIL OR CRIMINAL PROSECUTION. SEE SECTION 1001 OF TITLE 18 AND SECTION 231 OF TITLE 31 OF THE UNITED STATES CODE.",W/2,16,{align:"center",maxWidth:W-60});
+
+  return doc.output("blob");
+}
+
+function App() {
+  const [step, setStep] = useState("upload");
+  const [editedData, setEditedData] = useState(null);
+  const [error, setError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [pdfBlob, setPdfBlob] = useState(null);
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const fileRef = useRef();
+
+  const parseFile = useCallback(async (file) => {
+    if (!apiKey.trim()) { setError("Please enter your Anthropic API key above before uploading."); return; }
+    setStep("parsing"); setError(""); setFileName(file.name);
+    try {
+      const isText = /\.(csv|txt|tsv)$/i.test(file.name);
+      let messages;
+      if (isText) {
+        const content = await file.text();
+        messages = [{ role:"user", content:`Parse this payroll report and extract WH-347 data:\n\n${content}` }];
+      } else {
+        const b64 = await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+        const t = file.type==="application/pdf" ? "document" : "image";
+        messages = [{role:"user",content:[{type:t,source:{type:"base64",media_type:file.type,data:b64}},{type:"text",text:"Parse this payroll report and extract WH-347 data."}]}];
+      }
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:PARSE_SYSTEM,messages})
+      });
+      if (!resp.ok) { const e=await resp.json(); throw new Error(e.error?.message||"API error"); }
+      const result = await resp.json();
+      const raw = result.content.map(b=>b.text||"").join("").replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(raw);
+      setEditedData(JSON.parse(JSON.stringify(parsed)));
+      setStep("review");
+    } catch(e) { setError("Error: "+e.message); setStep("upload"); }
+  }, [apiKey]);
+
+  const handleGenerate = async () => {
+    setStep("parsing");
+    try {
+      const blob = await generatePDF(editedData);
+      setPdfBlob(blob); setStep("done");
+    } catch(e) { setError("PDF error: "+e.message); setStep("review"); }
+  };
+
+  const handleDownload = () => {
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement("a");
+    a.href=url; a.download=`WH347_${(editedData?.week_ending||"form").replace(/\//g,"-")}.pdf`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const updateField = (path, value) => {
+    setEditedData(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const parts = path.split(".");
+      let obj = next;
+      for (let i=0;i<parts.length-1;i++) {
+        const p=parts[i];
+        if(p.includes("[")){ const[k,idx]=p.replace("]","").split("["); obj=obj[k][parseInt(idx)]; }
+        else obj=obj[p];
+      }
+      obj[parts[parts.length-1]]=value;
+      return next;
+    });
+  };
+
+  const stepIdx = ["upload","parsing","review","done"].indexOf(step);
+
+  const css = {
+    page: {maxWidth:880,margin:"0 auto",padding:"28px 20px"},
+    card: {background:"#fff",border:"1px solid #e0e0e0",borderRadius:12,padding:"24px 28px",marginBottom:18,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"},
+    btn: {background:"#1B2A4A",color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",fontSize:13,fontWeight:600,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:8,transition:"opacity 0.15s"},
+    btnOut: {background:"transparent",color:"#1B2A4A",border:"1px solid #1B2A4A",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:500,cursor:"pointer"},
+    btnGold: {background:"#C9A84C",color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",fontSize:13,fontWeight:600,cursor:"pointer"},
+    inp: {border:"1px solid #ccc",borderRadius:6,padding:"8px 10px",fontSize:13,background:"#fff",color:"#1a1a1a",width:"100%"},
+    lbl: {fontSize:11,color:"#666",fontWeight:600,marginBottom:4,display:"block",textTransform:"uppercase",letterSpacing:0.5},
+    g2: {display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14},
+    g3: {display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12},
+    g6: {display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8,marginBottom:12},
+    secTitle: {fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",color:"#888",marginBottom:14,paddingBottom:8,borderBottom:"1px solid #eee"},
+    spinner: {width:34,height:34,border:"3px solid #eee",borderTopColor:"#1B2A4A",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 16px"},
+    empCard: {border:"1px solid #e8e8e8",borderRadius:10,padding:"16px 18px",marginBottom:14,background:"#fafafa"},
+    badge: {display:"inline-block",fontSize:10,padding:"2px 10px",borderRadius:12,background:"#e8f0fb",color:"#1a56b0",fontWeight:500,marginLeft:8},
+    hrsGrid: {display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,marginBottom:10},
+    err: {background:"#fdecea",color:"#b71c1c",border:"1px solid #f5c6cb",borderRadius:8,padding:"12px 16px",fontSize:13,marginBottom:16},
+    drop: {border:`2px dashed ${dragOver?"#1B2A4A":"#ccc"}`,borderRadius:10,padding:"40px 24px",textAlign:"center",cursor:"pointer",background:dragOver?"#f0f4ff":"transparent",transition:"all 0.2s"},
+  };
+
+  const Field = ({label, path, value}) => (
+    <div>
+      <label style={css.lbl}>{label}</label>
+      <input style={css.inp} value={value||""} onChange={e=>updateField(path,e.target.value)}/>
+    </div>
+  );
+
+  return (
+    <div style={css.page}>
+      {/* Header */}
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{display:"inline-block",background:"#1B2A4A",color:"#C9A84C",fontSize:10,fontWeight:700,letterSpacing:3,padding:"4px 14px",borderRadius:20,textTransform:"uppercase",marginBottom:12}}>DOL Compliance Suite</div>
+        <h1 style={{fontSize:28,fontWeight:700,color:"#1B2A4A",margin:"0 0 8px",letterSpacing:-0.5}}>WH-347 Certified Payroll</h1>
+        <p style={{fontSize:14,color:"#666",margin:0}}>Upload your payroll report — AI extracts the data and fills the WH-347 form automatically</p>
+      </div>
+
+      {/* Step indicator */}
+      <div style={{display:"flex",justifyContent:"center",alignItems:"center",marginBottom:32,gap:0}}>
+        {["Upload","Extract","Review","Download"].map((label,i)=>(
+          <React.Fragment key={label}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:80}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:i<=stepIdx?"#1B2A4A":i===stepIdx?"#C9A84C":"#e8e8e8",color:i<=stepIdx?"#fff":"#999",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,marginBottom:4,transition:"all 0.3s"}}>
+                {i<stepIdx?"✓":i+1}
+              </div>
+              <span style={{fontSize:11,fontWeight:i===stepIdx?700:400,color:i===stepIdx?"#1B2A4A":"#999"}}>{label}</span>
+            </div>
+            {i<3&&<div style={{width:48,height:2,background:i<stepIdx?"#1B2A4A":"#e8e8e8",margin:"0 0 22px",transition:"background 0.3s"}}/>}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {error && <div style={css.err}>⚠️ {error}</div>}
+
+      {/* UPLOAD */}
+      {step==="upload" && (
+        <div style={css.card}>
+          {/* API Key */}
+          <div style={{marginBottom:20,padding:"14px 16px",background:"#f8f9ff",borderRadius:8,border:"1px solid #d0d8f0"}}>
+            <label style={{...css.lbl,color:"#1B2A4A"}}>🔑 Anthropic API Key</label>
+            <div style={{display:"flex",gap:8}}>
+              <input type={showKey?"text":"password"} placeholder="sk-ant-api03-..." style={css.inp} value={apiKey} onChange={e=>setApiKey(e.target.value)}/>
+              <button onClick={()=>setShowKey(v=>!v)} style={{...css.btnOut,flexShrink:0,padding:"8px 14px",fontSize:12}}>{showKey?"Hide":"Show"}</button>
+            </div>
+            <div style={{fontSize:11,color:"#888",marginTop:6}}>Your key never leaves your browser — only sent directly to Anthropic's API. Get one at <a href="https://console.anthropic.com" target="_blank" style={{color:"#1a56b0"}}>console.anthropic.com</a></div>
+          </div>
+
+          {/* Drop zone */}
+          <div style={css.drop}
+            onDragOver={e=>{e.preventDefault();setDragOver(true)}}
+            onDragLeave={()=>setDragOver(false)}
+            onDrop={e=>{e.preventDefault();setDragOver(false);const f=e.dataTransfer.files[0];if(f)parseFile(f);}}
+            onClick={()=>fileRef.current?.click()}>
+            <div style={{fontSize:44,marginBottom:12}}>📄</div>
+            <div style={{fontSize:16,fontWeight:600,color:"#1B2A4A",marginBottom:6}}>Drop your payroll report here</div>
+            <div style={{fontSize:13,color:"#888",lineHeight:1.6}}>Supports CSV, Excel (.xlsx), PDF<br/>Works with QuickBooks, ADP, Gusto, Sage, and most payroll systems</div>
+          </div>
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.pdf,.txt" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(f)parseFile(f);e.target.value="";}}/>
+
+          <div style={{textAlign:"center",marginTop:16}}>
+            <button style={css.btn} onClick={()=>fileRef.current?.click()}>Choose File</button>
+          </div>
+
+          {/* Template banner */}
+          <div style={{marginTop:20,padding:"16px 18px",background:"#fffbf0",border:"1px solid #f0d88a",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:"#1B2A4A",marginBottom:3}}>📋 Not sure what columns to include?</div>
+              <div style={{fontSize:12,color:"#666"}}>Download our template showing every required field with sample data.</div>
+            </div>
+            <button onClick={downloadTemplate} style={{...css.btnGold,padding:"9px 18px",fontSize:12,flexShrink:0}}>⬇ Download Template (.xlsx)</button>
+          </div>
+
+          {/* What we extract */}
+          <div style={{marginTop:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {["Contractor & project info","Employee names & SS last 4 digits","Work classifications (trade/craft)","Daily hours Sun–Sat","Straight-time & overtime rates","Gross wages, deductions & net pay"].map(item=>(
+              <div key={item} style={{fontSize:12,color:"#555",display:"flex",gap:7,alignItems:"flex-start"}}>
+                <span style={{color:"#2e7d32",fontWeight:700,flexShrink:0}}>✓</span>{item}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* PARSING */}
+      {step==="parsing" && (
+        <div style={{...css.card,textAlign:"center",padding:"60px 28px"}} className="fade-in">
+          <div style={css.spinner}/>
+          <div style={{fontSize:17,fontWeight:600,color:"#1B2A4A",marginBottom:8}}>Analyzing payroll data…</div>
+          {fileName&&<div style={{fontSize:13,color:"#888"}}>Reading {fileName}</div>}
+          <div style={{fontSize:12,color:"#aaa",marginTop:6}}>Extracting all WH-347 fields</div>
+        </div>
+      )}
+
+      {/* REVIEW */}
+      {step==="review" && editedData && (
+        <div className="fade-in">
+          <div style={css.card}>
+            <div style={css.secTitle}>Project & Contractor</div>
+            <div style={css.g2}>
+              <Field label="Contractor Name" path="contractor_name" value={editedData.contractor_name}/>
+              <Field label="Contractor Address" path="contractor_address" value={editedData.contractor_address}/>
+              <Field label="Project Name" path="project_name" value={editedData.project_name}/>
+              <Field label="Project Location" path="project_location" value={editedData.project_location}/>
+              <Field label="Contract Number" path="contract_number" value={editedData.contract_number}/>
+              <Field label="Project Number" path="project_number" value={editedData.project_number}/>
+            </div>
+            <div style={css.g3}>
+              <Field label="Payroll Number" path="payroll_number" value={editedData.payroll_number}/>
+              <Field label="Week Ending (MM/DD/YYYY)" path="week_ending" value={editedData.week_ending}/>
+              <Field label="Period Start (MM/DD/YYYY)" path="period_start" value={editedData.period_start}/>
+            </div>
+          </div>
+
+          <div style={css.card}>
+            <div style={css.secTitle}>Signatory</div>
+            <div style={css.g3}>
+              <Field label="Name" path="signatory_name" value={editedData.signatory_name}/>
+              <Field label="Title" path="signatory_title" value={editedData.signatory_title}/>
+              <Field label="Signature Date (MM/DD/YYYY)" path="signature_date" value={editedData.signature_date}/>
+            </div>
+          </div>
+
+          <div style={css.card}>
+            <div style={css.secTitle}>Employees — {(editedData.employees||[]).length} found</div>
+            {(editedData.employees||[]).map((emp,idx)=>(
+              <div key={idx} style={css.empCard}>
+                <div style={{fontSize:14,fontWeight:700,color:"#1B2A4A",marginBottom:12}}>
+                  {emp.name||`Employee ${idx+1}`}
+                  <span style={css.badge}>{emp.classification}</span>
+                </div>
+                <div style={css.g3}>
+                  <Field label="Name (Last, First)" path={`employees[${idx}].name`} value={emp.name}/>
+                  <Field label="SS Last 4 Digits" path={`employees[${idx}].ss_last4`} value={emp.ss_last4}/>
+                  <Field label="Work Classification" path={`employees[${idx}].classification`} value={emp.classification}/>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <label style={css.lbl}>Daily Hours (Sun – Sat)</label>
+                  <div style={css.hrsGrid}>
+                    {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d,di)=>(
+                      <div key={d} style={{textAlign:"center"}}>
+                        <div style={{fontSize:10,color:"#888",marginBottom:3,fontWeight:600}}>{d}</div>
+                        <input type="number" min="0" max="24" style={{...css.inp,textAlign:"center",padding:"6px 2px",fontSize:13}} value={(emp.daily_hours||[])[di]??0}
+                          onChange={e=>{const h=[...(emp.daily_hours||[0,0,0,0,0,0,0])];h[di]=+e.target.value;updateField(`employees[${idx}].daily_hours`,h);}}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={css.g3}>
+                  <Field label="ST Hours" path={`employees[${idx}].st_hours`} value={emp.st_hours}/>
+                  <Field label="OT Hours" path={`employees[${idx}].ot_hours`} value={emp.ot_hours}/>
+                  <Field label="ST Rate ($/hr)" path={`employees[${idx}].rate_of_pay`} value={emp.rate_of_pay}/>
+                  <Field label="OT Rate ($/hr)" path={`employees[${idx}].ot_rate`} value={emp.ot_rate}/>
+                  <Field label="Gross Wages ($)" path={`employees[${idx}].gross_wages`} value={emp.gross_wages}/>
+                  <Field label="Net Wages ($)" path={`employees[${idx}].net_wages`} value={emp.net_wages}/>
+                </div>
+                <div style={css.g6}>
+                  {["fica","fed_tax","state_tax","other_ded1","other_ded2","total_deductions"].map(f=>(
+                    <Field key={f} label={f.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())} path={`employees[${idx}].${f}`} value={emp[f]}/>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+            <button style={css.btnOut} onClick={()=>{setStep("upload");setEditedData(null);}}>← Start Over</button>
+            <button style={css.btn} onClick={handleGenerate}>Generate WH-347 PDF →</button>
+          </div>
+        </div>
+      )}
+
+      {/* DONE */}
+      {step==="done" && (
+        <div style={{...css.card,textAlign:"center",padding:"52px 28px"}} className="fade-in">
+          <div style={{width:64,height:64,borderRadius:"50%",background:"#e8f5e9",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 18px"}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2 style={{fontSize:22,fontWeight:700,color:"#1B2A4A",margin:"0 0 8px"}}>WH-347 Ready</h2>
+          <p style={{fontSize:14,color:"#666",margin:"0 0 28px"}}>
+            Form generated for week ending <strong>{editedData?.week_ending}</strong>.<br/>
+            Review carefully, obtain authorized signature, then submit.
+          </p>
+          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginBottom:28}}>
+            <button style={css.btn} onClick={handleDownload}>⬇ Download PDF</button>
+            <button style={css.btnOut} onClick={()=>setStep("review")}>Edit Data</button>
+            <button style={css.btnOut} onClick={()=>{setStep("upload");setEditedData(null);setPdfBlob(null);}}>New Payroll</button>
+          </div>
+          <div style={{padding:"14px 20px",background:"#f8f9ff",borderRadius:8,textAlign:"left",border:"1px solid #d0d8f0"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#1B2A4A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Next Steps</div>
+            {["Print and verify all figures for accuracy","Have the authorized signatory sign the form","Submit to the contracting officer each week","Retain copy for at least 3 years (29 CFR Part 5)"].map((s,i)=>(
+              <div key={i} style={{fontSize:12,color:"#555",display:"flex",gap:8,marginBottom:5}}>
+                <span style={{fontWeight:700,color:"#1B2A4A",flexShrink:0}}>{i+1}.</span>{s}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{textAlign:"center",marginTop:24,fontSize:11,color:"#aaa",lineHeight:1.8}}>
+        Always verify generated forms before submission.<br/>
+        Compliance responsibility rests with the contractor. This tool does not constitute legal advice.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
